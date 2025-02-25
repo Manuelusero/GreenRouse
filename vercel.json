@@ -1,0 +1,6 @@
+{
+    "rewrites": [
+      { "source": "/", "destination": "/Html y Css/index.html" }
+    ]
+  }
+  
