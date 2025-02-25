@@ -1,6 +1,0 @@
-{
-    "rewrites": [
-      { "source": "/", "destination": "/GreenRouse/index.html" }
-    ]
-  }
-  
