@@ -2,36 +2,8 @@ import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import Link from 'next/link'
 
-// Datos de ejemplo para las parcelas
-const parcelas = [
-  {
-    id: 1,
-    nombre: 'Parcela Norte',
-    area: 25,
-    cultivos: ['Tomates', 'Lechugas', 'Zanahorias'],
-    fechaSiembra: '2024-09-15',
-    estado: 'Creciendo',
-    riego: 'Cada 2 días'
-  },
-  {
-    id: 2,
-    nombre: 'Parcela Sur',
-    area: 18,
-    cultivos: ['Acelgas', 'Rúcula', 'Rabanitos'],
-    fechaSiembra: '2024-10-01',
-    estado: 'Plantado',
-    riego: 'Diario'
-  },
-  {
-    id: 3,
-    nombre: 'Parcela Oeste',
-    area: 30,
-    cultivos: ['Calabazas', 'Choclos', 'Porotos'],
-    fechaSiembra: '2024-08-20',
-    estado: 'Madurando',
-    riego: 'Cada 3 días'
-  }
-]
+// Estado inicial: sin parcelas
+const parcelas: any[] = []
 
 export default function ParcelasPage() {
   return (
