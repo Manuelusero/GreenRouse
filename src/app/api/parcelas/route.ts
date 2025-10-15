@@ -1,38 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server'
 import connectDB from '@/lib/mongodb'
 import Parcela from '@/models/Parcela'
-import { cultivosDatabase } from '@/data/cultivos'
+import Usuario from '@/models/Usuario'
 
-// GET /api/parcelas - Obtener todas las parcelas
-// POST /api/parcelas - Crear nueva parcela
+// GET /api/parcelas - Obtener todas las parcelas del usuario
 export async function GET(request: NextRequest) {
   try {
     await connectDB()
     
     const { searchParams } = new URL(request.url)
-    const usuario_id = searchParams.get('usuario_id')
+    const userId = searchParams.get('userId')
     
-    let query = {}
-    if (usuario_id) {
-      query = { usuario_id }
+    if (!userId) {
+      return NextResponse.json({ error: 'Usuario requerido' }, { status: 400 })
     }
     
-    const parcelas = await Parcela.find(query)
-      .populate('usuario_id', 'nombre email')
+    // Buscar usuario por email
+    const usuario = await Usuario.findOne({ email: userId })
+    if (!usuario) {
+      return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 })
+    }
+    
+    // Buscar parcelas del usuario
+    const parcelas = await Parcela.find({ usuarioEmail: userId })
       .select('-__v')
       .sort({ createdAt: -1 })
     
-    return NextResponse.json({
-      success: true,
-      data: parcelas,
-      count: parcelas.length
-    })
+    return NextResponse.json(parcelas)
   } catch (error: any) {
     console.error('Error obteniendo parcelas:', error)
-    return NextResponse.json({
-      success: false,
-      error: 'Error interno del servidor'
-    }, { status: 500 })
+    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })
   }
 }
 
@@ -42,60 +39,30 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     
     // Validar datos requeridos
-    const { usuario_id, nombre, dimensiones, cultivo_principal } = body
+    const { usuarioEmail, nombre, area, cultivos, fechaSiembra, estado, riego } = body
     
-    if (!usuario_id || !nombre || !dimensiones || !cultivo_principal) {
-      return NextResponse.json({
-        success: false,
-        error: 'Todos los campos son requeridos'
-      }, { status: 400 })
+    if (!usuarioEmail || !nombre || !area) {
+      return NextResponse.json({ error: 'Todos los campos requeridos' }, { status: 400 })
     }
 
-    if (!dimensiones.largo || !dimensiones.ancho) {
-      return NextResponse.json({
-        success: false,
-        error: 'Las dimensiones (largo y ancho) son requeridas'
-      }, { status: 400 })
-    }
-
-    // Calcular área
-    const area_m2 = (dimensiones.largo * dimensiones.ancho) / 10000
-
-    // Preparar datos de plantas si se especifica un cultivo conocido
-    let plantas: any[] = []
-    if (cultivosDatabase[cultivo_principal as keyof typeof cultivosDatabase]) {
-      const cultivo = cultivosDatabase[cultivo_principal as keyof typeof cultivosDatabase]
-      const plantasPorM2 = Math.round(10000 / (cultivo.distancia * cultivo.distancia))
-      const cantidadTotal = Math.floor(area_m2 * plantasPorM2)
-      
-      plantas = [{
-        cultivo_key: cultivo_principal,
-        cantidad: cantidadTotal,
-        estado: 'planificado'
-      }]
+    // Verificar que el usuario existe
+    const usuario = await Usuario.findOne({ email: usuarioEmail })
+    if (!usuario) {
+      return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 })
     }
 
     // Crear nueva parcela
     const nuevaParcela = await Parcela.create({
-      usuario_id,
+      usuarioEmail,
       nombre,
-      dimensiones,
-      area_m2,
-      cultivo_principal,
-      plantas,
-      ubicacion: body.ubicacion || {},
-      estado: 'planificada',
-      configuracion: body.configuracion || {}
+      area: parseInt(area),
+      cultivos: cultivos || [],
+      fechaSiembra: fechaSiembra || new Date(),
+      estado: estado || 'Preparando',
+      riego: riego || 'Diario'
     })
 
-    // Poblar el usuario para la respuesta
-    await nuevaParcela.populate('usuario_id', 'nombre email')
-
-    return NextResponse.json({
-      success: true,
-      data: nuevaParcela,
-      message: 'Parcela creada exitosamente'
-    }, { status: 201 })
+    return NextResponse.json(nuevaParcela, { status: 201 })
 
   } catch (error: any) {
     console.error('Error creando parcela:', error)
@@ -103,15 +70,9 @@ export async function POST(request: NextRequest) {
     // Errores de validación de Mongoose
     if (error.name === 'ValidationError') {
       const errorMessages = Object.values(error.errors).map((err: any) => err.message)
-      return NextResponse.json({
-        success: false,
-        error: errorMessages[0]
-      }, { status: 400 })
+      return NextResponse.json({ error: errorMessages[0] }, { status: 400 })
     }
 
-    return NextResponse.json({
-      success: false,
-      error: 'Error interno del servidor'
-    }, { status: 500 })
+    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })
   }
 }
