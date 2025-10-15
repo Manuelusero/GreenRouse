@@ -1,8 +1,4 @@
 {
-  "/calculadora/page": "app/calculadora/page.js",
-  "/blog/page": "app/blog/page.js",
-  "/comenzar/page": "app/comenzar/page.js",
-  "/page": "app/page.js",
-  "/calendario/page": "app/calendario/page.js",
-  "/parcelas/page": "app/parcelas/page.js"
+  "/api/auth/[...nextauth]/route": "app/api/auth/[...nextauth]/route.js",
+  "/auth/login/page": "app/auth/login/page.js"
 }

@@ -1,6 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import Link from 'next/link'
@@ -18,6 +20,8 @@ interface FormData {
 }
 
 export default function ComenzarHuerta() {
+  const { data: session, status } = useSession()
+  const router = useRouter()
   const [paso, setPaso] = useState(1)
   const [formData, setFormData] = useState<FormData>({
     nombre: '',
@@ -37,6 +41,25 @@ export default function ComenzarHuerta() {
   })
 
   const totalPasos = 9
+
+  // Efecto para verificar autenticación
+  useEffect(() => {
+    if (status === 'loading') return // Aún cargando
+    
+    if (!session) {
+      // Si no está autenticado, redirigir al login
+      router.push('/auth/login')
+      return
+    }
+
+    // Si está autenticado, prellenar nombre del usuario
+    if (session.user?.name && !formData.nombre) {
+      setFormData(prev => ({
+        ...prev,
+        nombre: session.user?.name || ''
+      }))
+    }
+  }, [session, status, router, formData.nombre])
 
   const handleObjetivosChange = (objetivo: string) => {
     setFormData(prev => ({
@@ -648,9 +671,33 @@ export default function ComenzarHuerta() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
                 <button
-                  onClick={() => {
-                    localStorage.setItem('greenrouse-onboarding', JSON.stringify(formData))
-                    window.location.href = '/parcelas?from=onboarding'
+                  onClick={async () => {
+                    if (!(session?.user as any)?.id) return
+                    
+                    try {
+                      // Guardar onboarding en BD
+                      await fetch('/api/onboarding', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          usuario_id: (session?.user as any)?.id,
+                          completado: true,
+                          paso_actual: 9,
+                          datos: formData
+                        })
+                      })
+
+                      // También mantener en localStorage como backup
+                      localStorage.setItem('greenrouse-onboarding', JSON.stringify(formData))
+                      
+                      // Redirigir a parcelas
+                      router.push('/parcelas?from=onboarding')
+                    } catch (error) {
+                      console.error('Error guardando onboarding:', error)
+                      // En caso de error, usar localStorage y continuar
+                      localStorage.setItem('greenrouse-onboarding', JSON.stringify(formData))
+                      router.push('/parcelas?from=onboarding')
+                    }
                   }}
                   className="bg-leaf-green text-white px-6 py-4 rounded-lg hover:bg-leaf-green/90 transition-colors font-semibold"
                 >
