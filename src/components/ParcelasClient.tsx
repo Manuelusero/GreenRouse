@@ -27,6 +27,8 @@ export default function ParcelasClient({ parcelas: initialParcelas, userEmail }:
 
   const handleCreateParcela = async (nuevaParcela: Omit<Parcela, '_id' | 'usuarioEmail'>) => {
     setIsLoading(true)
+    console.log('🚀 Creando parcela con datos:', { ...nuevaParcela, usuarioEmail: userEmail })
+    
     try {
       const response = await fetch('/api/parcelas', {
         method: 'POST',
@@ -39,15 +41,21 @@ export default function ParcelasClient({ parcelas: initialParcelas, userEmail }:
         }),
       })
 
+      console.log('📡 Response status:', response.status)
+      
       if (response.ok) {
         const parcelaCreada = await response.json()
+        console.log('✅ Parcela creada exitosamente:', parcelaCreada)
         setParcelas([...parcelas, parcelaCreada])
         setIsModalOpen(false)
       } else {
-        console.error('Error creando parcela')
+        const errorData = await response.json()
+        console.error('❌ Error creando parcela:', response.status, errorData)
+        alert(`Error: ${errorData.error || 'No se pudo crear la parcela'}`)
       }
     } catch (error) {
-      console.error('Error:', error)
+      console.error('💥 Error de red:', error)
+      alert('Error de conexión. Verifica tu conexión a internet.')
     } finally {
       setIsLoading(false)
     }
@@ -60,12 +68,21 @@ export default function ParcelasClient({ parcelas: initialParcelas, userEmail }:
           <h1 className="text-3xl font-bold text-soil-dark mb-2">Mis Parcelas</h1>
           <p className="text-gray-600">Gestiona tus cultivos y monitorea el progreso de tu huerta</p>
         </div>
-        <button 
-          onClick={() => setIsModalOpen(true)}
-          className="bg-leaf-green text-white px-6 py-3 rounded-lg hover:bg-sage-green transition-colors font-semibold"
-        >
-          + Nueva Parcela
-        </button>
+        {parcelas.length === 0 ? (
+          <Link 
+            href="/comenzar"
+            className="bg-leaf-green text-white px-6 py-3 rounded-lg hover:bg-sage-green transition-colors font-semibold"
+          >
+            🌱 Comenzar Huerta
+          </Link>
+        ) : (
+          <button 
+            onClick={() => setIsModalOpen(true)}
+            className="bg-leaf-green text-white px-6 py-3 rounded-lg hover:bg-sage-green transition-colors font-semibold"
+          >
+            + Nueva Parcela
+          </button>
+        )}
       </div>
 
       {/* Estado vacío - Sin parcelas */}
@@ -81,16 +98,16 @@ export default function ParcelasClient({ parcelas: initialParcelas, userEmail }:
             ¡Comienza tu huerta orgánica!
           </h2>
           <p className="text-gray-600 mb-8 max-w-md mx-auto">
-            Aún no tienes parcelas registradas. Crea tu primera parcela para comenzar a gestionar tus cultivos de manera sostenible.
+            Te ayudaremos a crear el perfil perfecto para tu huerta. Responde unas preguntas y comenzaremos a diseñar tu espacio de cultivo ideal.
           </p>
           
           {/* Botón de acción principal */}
-          <button 
-            onClick={() => setIsModalOpen(true)}
-            className="bg-leaf-green text-white px-8 py-4 rounded-lg hover:bg-sage-green transition-colors font-semibold text-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+          <Link 
+            href="/comenzar"
+            className="inline-block bg-leaf-green text-white px-8 py-4 rounded-lg hover:bg-sage-green transition-colors font-semibold text-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
           >
-            🌿 Crear Mi Primera Parcela
-          </button>
+            � Comenzar Mi Huerta
+          </Link>
           
           {/* Beneficios o tips */}
           <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
@@ -230,7 +247,7 @@ function FormularioNuevaParcela({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-semibold text-gray-800 mb-2">
           Nombre de la Parcela
         </label>
         <input
@@ -238,13 +255,13 @@ function FormularioNuevaParcela({
           required
           value={formData.nombre}
           onChange={(e) => setFormData({...formData, nombre: e.target.value})}
-          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-leaf-green focus:border-transparent"
+          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-leaf-green focus:border-transparent text-gray-900 placeholder-gray-500"
           placeholder="Ej: Parcela Norte"
         />
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-semibold text-gray-800 mb-2">
           Área (m²)
         </label>
         <input
@@ -253,33 +270,33 @@ function FormularioNuevaParcela({
           min="1"
           value={formData.area}
           onChange={(e) => setFormData({...formData, area: e.target.value})}
-          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-leaf-green focus:border-transparent"
+          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-leaf-green focus:border-transparent text-gray-900 placeholder-gray-500"
           placeholder="25"
         />
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-semibold text-gray-800 mb-2">
           Cultivos (separados por coma)
         </label>
         <input
           type="text"
           value={formData.cultivos}
           onChange={(e) => setFormData({...formData, cultivos: e.target.value})}
-          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-leaf-green focus:border-transparent"
+          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-leaf-green focus:border-transparent text-gray-900 placeholder-gray-500"
           placeholder="Tomates, Lechugas, Zanahorias"
         />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-semibold text-gray-800 mb-2">
             Estado
           </label>
           <select
             value={formData.estado}
             onChange={(e) => setFormData({...formData, estado: e.target.value})}
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-leaf-green focus:border-transparent"
+            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-leaf-green focus:border-transparent text-gray-900 bg-white"
           >
             <option value="Preparando">Preparando</option>
             <option value="Plantado">Plantado</option>
@@ -290,13 +307,13 @@ function FormularioNuevaParcela({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-semibold text-gray-800 mb-2">
             Frecuencia de Riego
           </label>
           <select
             value={formData.riego}
             onChange={(e) => setFormData({...formData, riego: e.target.value})}
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-leaf-green focus:border-transparent"
+            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-leaf-green focus:border-transparent text-gray-900 bg-white"
           >
             <option value="Diario">Diario</option>
             <option value="Cada 2 días">Cada 2 días</option>
@@ -307,14 +324,14 @@ function FormularioNuevaParcela({
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-semibold text-gray-800 mb-2">
           Fecha de Siembra
         </label>
         <input
           type="date"
           value={formData.fechaSiembra}
           onChange={(e) => setFormData({...formData, fechaSiembra: e.target.value})}
-          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-leaf-green focus:border-transparent"
+          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-leaf-green focus:border-transparent text-gray-900 bg-white"
         />
       </div>
 
