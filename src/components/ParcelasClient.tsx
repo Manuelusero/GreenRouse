@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Modal from './Modal'
 
@@ -24,6 +25,22 @@ export default function ParcelasClient({ parcelas: initialParcelas, userEmail }:
   const [parcelas, setParcelas] = useState<Parcela[]>(initialParcelas)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false)
+  
+  const searchParams = useSearchParams()
+  const fromOnboarding = searchParams.get('from') === 'onboarding'
+
+  useEffect(() => {
+    if (fromOnboarding) {
+      setShowSuccessMessage(true)
+      // Ocultar mensaje después de 5 segundos
+      const timer = setTimeout(() => {
+        setShowSuccessMessage(false)
+      }, 5000)
+      
+      return () => clearTimeout(timer)
+    }
+  }, [fromOnboarding])
 
   const handleCreateParcela = async (nuevaParcela: Omit<Parcela, '_id' | 'usuarioEmail'>) => {
     setIsLoading(true)
@@ -63,6 +80,23 @@ export default function ParcelasClient({ parcelas: initialParcelas, userEmail }:
 
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      {/* Mensaje de éxito del onboarding */}
+      {showSuccessMessage && (
+        <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4 flex items-center space-x-3">
+          <div className="text-green-500 text-2xl">🎉</div>
+          <div>
+            <h3 className="text-green-800 font-semibold">¡Configuración completada!</h3>
+            <p className="text-green-700 text-sm">Hemos creado tus parcelas automáticamente basadas en tu perfil. ¡Ya puedes comenzar a planificar tu huerta!</p>
+          </div>
+          <button 
+            onClick={() => setShowSuccessMessage(false)}
+            className="text-green-500 hover:text-green-700 ml-auto"
+          >
+            ×
+          </button>
+        </div>
+      )}
+      
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold text-soil-dark mb-2">Mis Parcelas</h1>

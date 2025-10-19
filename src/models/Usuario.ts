@@ -33,18 +33,15 @@ const UsuarioSchema = new mongoose.Schema({
   },
   experiencia: {
     type: String,
-    required: true,
     enum: ['principiante', 'basico', 'intermedio', 'avanzado'],
     default: 'principiante'
   },
   espacio: {
     type: String,
-    required: true,
     enum: ['balcon', 'patio', 'jardin', 'terreno']
   },
   ubicacion: {
     type: String,
-    required: true,
     enum: ['interior', 'sombra', 'semisombra', 'sol']
   },
   objetivos: [{
@@ -53,7 +50,6 @@ const UsuarioSchema = new mongoose.Schema({
   }],
   tiempo: {
     type: String,
-    required: true,
     enum: ['poco', 'moderado', 'bastante', 'mucho']
   },
   perfil: {

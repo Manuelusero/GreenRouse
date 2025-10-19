@@ -39,6 +39,12 @@ const OnboardingSchema = new mongoose.Schema({
       type: String,
       enum: ['poco', 'moderado', 'bastante', 'mucho']
     },
+    // Nuevos campos geográficos para recomendaciones estacionales
+    pais: {
+      type: String,
+      enum: ['mexico', 'estados-unidos', 'canada', 'españa', 'francia', 'alemania', 'italia', 'reino-unido', 'china', 'japon', 'argentina', 'chile', 'brasil', 'peru', 'colombia', 'ecuador', 'uruguay', 'bolivia', 'paraguay', 'australia', 'nueva-zelanda', 'sudafrica']
+    },
+    ubicacionGeografica: String, // Ciudad específica para clima local
     cultivos_seleccionados: [String],
     parcelas: [{
       nombre: String,
@@ -52,6 +58,10 @@ const OnboardingSchema = new mongoose.Schema({
     default: Date.now
   },
   fecha_completado: Date,
+  parcelas_creadas: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Parcela'
+  }],
   configuracion_recomendada: {
     cultivos_sugeridos: [String],
     nivel_dificultad: {

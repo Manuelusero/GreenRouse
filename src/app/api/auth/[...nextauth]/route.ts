@@ -1,4 +1,5 @@
 import NextAuth from 'next-auth'
+import { AuthOptions } from 'next-auth'
 import { MongoDBAdapter } from '@next-auth/mongodb-adapter'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import EmailProvider from 'next-auth/providers/email'
@@ -13,7 +14,7 @@ const client = new MongoClient(process.env.MONGODB_URI!)
 const clientPromise = client.connect()
 const resend = new Resend(process.env.RESEND_API_KEY!)
 
-const handler = NextAuth({
+export const authOptions: AuthOptions = {
   adapter: MongoDBAdapter(clientPromise),
   providers: [
     EmailProvider({
@@ -174,7 +175,7 @@ const handler = NextAuth({
   ],
   
   session: {
-    strategy: 'jwt'
+    strategy: 'jwt' as const
   },
   
   callbacks: {
@@ -200,6 +201,8 @@ const handler = NextAuth({
   },
   
   secret: process.env.NEXTAUTH_SECRET
-})
+}
+
+const handler = NextAuth(authOptions)
 
 export { handler as GET, handler as POST }

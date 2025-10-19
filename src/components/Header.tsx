@@ -1,11 +1,26 @@
 'use client'
 import Link from 'next/link'
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useSession, signOut } from 'next-auth/react'
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
   const { data: session, status } = useSession()
+  const userMenuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setIsUserMenuOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
 
   return (
     <header className="bg-white shadow-lg sticky top-0 z-50">
@@ -42,7 +57,7 @@ export default function Header() {
             {status === 'loading' ? (
               <div className="w-8 h-8 animate-spin rounded-full border-2 border-leaf-green border-t-transparent"></div>
             ) : session ? (
-              <div className="flex items-center space-x-3">
+              <div className="relative flex items-center space-x-3">
                 <div className="flex items-center space-x-2">
                   <div className="w-8 h-8 bg-leaf-green rounded-full flex items-center justify-center">
                     <span className="text-white font-bold text-sm">
@@ -53,12 +68,45 @@ export default function Header() {
                     ¡Hola, {session.user?.name?.split(' ')[0] || 'Usuario'}!
                   </span>
                 </div>
-                <button
-                  onClick={() => signOut({ callbackUrl: '/' })}
-                  className="text-gray-600 hover:text-red-600 transition-colors text-sm"
-                >
-                  Cerrar Sesión
-                </button>
+                <div className="relative" ref={userMenuRef}>
+                  <button
+                    onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                    className="text-gray-600 hover:text-leaf-green transition-colors p-1"
+                  >
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
+                  </button>
+                  
+                  {isUserMenuOpen && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border">
+                      <Link
+                        href="/perfil"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        onClick={() => setIsUserMenuOpen(false)}
+                      >
+                        👤 Mi Perfil
+                      </Link>
+                      <Link
+                        href="/parcelas"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        onClick={() => setIsUserMenuOpen(false)}
+                      >
+                        🌱 Mis Parcelas
+                      </Link>
+                      <hr className="my-1" />
+                      <button
+                        onClick={() => {
+                          setIsUserMenuOpen(false)
+                          signOut({ callbackUrl: '/' })
+                        }}
+                        className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
+                      >
+                        🚪 Cerrar Sesión
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             ) : (
               <div className="flex items-center space-x-2">
@@ -109,7 +157,7 @@ export default function Header() {
               <div className="border-t pt-3 mt-3">
                 {session ? (
                   <div className="px-3 py-2">
-                    <div className="flex items-center space-x-2 mb-2">
+                    <div className="flex items-center space-x-2 mb-3">
                       <div className="w-6 h-6 bg-leaf-green rounded-full flex items-center justify-center">
                         <span className="text-white text-xs">
                           {session.user?.name?.charAt(0).toUpperCase() || '👤'}
@@ -119,12 +167,24 @@ export default function Header() {
                         {session.user?.name || 'Usuario'}
                       </span>
                     </div>
-                    <button
-                      onClick={() => signOut({ callbackUrl: '/' })}
-                      className="text-red-600 text-sm hover:text-red-800"
-                    >
-                      Cerrar Sesión
-                    </button>
+                    <div className="space-y-2">
+                      <Link
+                        href="/perfil"
+                        className="block text-gray-700 text-sm hover:text-leaf-green"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        👤 Mi Perfil
+                      </Link>
+                      <button
+                        onClick={() => {
+                          setIsMenuOpen(false)
+                          signOut({ callbackUrl: '/' })
+                        }}
+                        className="block text-red-600 text-sm hover:text-red-800"
+                      >
+                        🚪 Cerrar Sesión
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <div className="px-3 py-2">

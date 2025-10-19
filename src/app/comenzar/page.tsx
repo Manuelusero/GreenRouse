@@ -675,27 +675,52 @@ export default function ComenzarHuerta() {
                     if (!(session?.user as any)?.id) return
                     
                     try {
+                      console.log('🚀 Enviando datos del onboarding:', formData)
+                      
+                      // Incluir parcelas creadas en el paso 8
+                      const datosCompletos = {
+                        ...formData,
+                        parcelas_creadas_manual: formData.parcelas || [] // Parcelas del paso 8
+                      }
+                      
                       // Guardar onboarding en BD
-                      await fetch('/api/onboarding', {
+                      const response = await fetch('/api/onboarding', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                           usuario_id: (session?.user as any)?.id,
                           completado: true,
                           paso_actual: 9,
-                          datos: formData
+                          datos: datosCompletos
                         })
                       })
-
-                      // También mantener en localStorage como backup
-                      localStorage.setItem('greenrouse-onboarding', JSON.stringify(formData))
                       
-                      // Redirigir a parcelas
-                      router.push('/parcelas?from=onboarding')
+                      const result = await response.json()
+                      console.log('📨 Respuesta del servidor:', result)
+
+                      if (response.ok && result.success) {
+                        console.log('✅ Onboarding guardado correctamente')
+                        const parcelasCreadas = result.parcelas_creadas?.length || 0
+                        console.log(`🌱 Se crearon ${parcelasCreadas} parcela(s)`)
+                        
+                        // También mantener en localStorage como backup
+                        localStorage.setItem('greenrouse-onboarding', JSON.stringify(datosCompletos))
+                        
+                        // Mostrar mensaje de éxito
+                        if (parcelasCreadas > 0) {
+                          alert(`¡Perfecto! Se han creado ${parcelasCreadas} parcela(s) basadas en tu configuración.`)
+                        }
+                        
+                        // Redirigir a parcelas
+                        router.push('/parcelas?from=onboarding')
+                      } else {
+                        throw new Error(result.error || 'Error desconocido')
+                      }
                     } catch (error) {
-                      console.error('Error guardando onboarding:', error)
+                      console.error('❌ Error guardando onboarding:', error)
                       // En caso de error, usar localStorage y continuar
                       localStorage.setItem('greenrouse-onboarding', JSON.stringify(formData))
+                      alert('Hubo un problema guardando tu información, pero continuaremos con el proceso.')
                       router.push('/parcelas?from=onboarding')
                     }
                   }}
@@ -741,7 +766,57 @@ export default function ComenzarHuerta() {
 
             {paso < totalPasos ? (
               <button
-                onClick={nextPaso}
+                onClick={paso === 8 ? async () => {
+                  // Función de guardar para el paso 8
+                  if (!(session?.user as any)?.id) return
+                  
+                  try {
+                    console.log('🚀 Enviando datos del onboarding desde paso 8:', formData)
+                    
+                    // Incluir parcelas creadas en el paso 8
+                    const datosCompletos = {
+                      ...formData,
+                      parcelas_creadas_manual: formData.parcelas || []
+                    }
+                    
+                    // Guardar onboarding en BD
+                    const response = await fetch('/api/onboarding', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        usuario_id: (session?.user as any)?.id,
+                        completado: true,
+                        paso_actual: 9,
+                        datos: datosCompletos
+                      })
+                    })
+                    
+                    const result = await response.json()
+                    console.log('📨 Respuesta del servidor:', result)
+
+                    if (response.ok && result.success) {
+                      console.log('✅ Onboarding guardado correctamente')
+                      const parcelasCreadas = result.parcelas_creadas?.length || 0
+                      console.log(`🌱 Se crearon ${parcelasCreadas} parcela(s)`)
+                      
+                      // También mantener en localStorage como backup
+                      localStorage.setItem('greenrouse-onboarding', JSON.stringify(datosCompletos))
+                      
+                      // Mostrar mensaje de éxito
+                      if (parcelasCreadas > 0) {
+                        alert(`¡Perfecto! Se han creado ${parcelasCreadas} parcela(s) basadas en tu configuración.`)
+                      }
+                      
+                      // Redirigir a parcelas
+                      router.push('/parcelas?from=onboarding')
+                    } else {
+                      throw new Error(result.error || 'Error desconocido')
+                    }
+                  } catch (error) {
+                    console.error('❌ Error guardando onboarding:', error)
+                    alert('Hubo un problema guardando tu información. Inténtalo de nuevo.')
+                  }
+                } : nextPaso}
                 disabled={
                   (paso === 1 && !formData.nombre) ||
                   (paso === 2 && !formData.experiencia) ||
@@ -753,7 +828,7 @@ export default function ComenzarHuerta() {
                 }
                 className="px-6 py-2 bg-leaf-green text-white rounded-lg hover:bg-leaf-green/90 disabled:bg-gray-300 disabled:cursor-not-allowed"
               >
-                {paso === 8 ? 'Finalizar Configuración' : 'Siguiente →'}
+                {paso === 8 ? '💾 Guardar Parcelas' : 'Siguiente →'}
               </button>
             ) : null}
           </div>
