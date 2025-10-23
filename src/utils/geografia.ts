@@ -99,25 +99,313 @@ export function obtenerCultivosEstacionales(paisCodigo: string, mes?: number): s
 }
 
 /**
- * Obtiene recomendaciones específicas para la ubicación
+ * Obtiene cultivos filtrados por tipo de clima
+ */
+export function obtenerCultivosPorClima(clima: string): string[] {
+  const cultivosPorClima: Record<string, string[]> = {
+    'tropical': [
+      'plátano', 'papaya', 'mango', 'jengibre', 'cilantro', 'albahaca thai',
+      'chiles picantes', 'yuca', 'batata', 'okra', 'lemongrass'
+    ],
+    'subtropical': [
+      'limón', 'naranja', 'aguacate', 'tomate', 'pimiento', 'berenjena',
+      'calabacín', 'albahaca', 'orégano', 'romero', 'lavanda'
+    ],
+    'templado': [
+      'manzana', 'pera', 'lechuga', 'espinaca', 'brócoli', 'zanahoria',
+      'rábano', 'perejil', 'cebollín', 'tomillo', 'salvia'
+    ],
+    'frio': [
+      'col rizada', 'coles de bruselas', 'coliflor', 'papa', 'cebolla',
+      'ajo', 'puerro', 'eneldo', 'menta', 'cebollas verdes'
+    ],
+    'desertico': [
+      'cactus comestible', 'aloe vera', 'hierbas resistentes', 'chiles',
+      'tomates cherry', 'suculentas comestibles', 'romero', 'lavanda'
+    ]
+  }
+  
+  return cultivosPorClima[clima] || []
+}
+
+/**
+ * Obtiene hortalizas organizadas por temporada
+ */
+export function obtenerHortalizasPorTemporada(paisCodigo: string): {
+  hortalizas: string[]
+  aromaticas: string[]
+} {
+  const estacion = obtenerEstacionActual(paisCodigo)
+  
+  const hortalizasPorEstacion: Record<string, string[]> = {
+    'primavera': [
+      'tomate', 'pimiento', 'berenjena', 'calabacín', 'pepino', 
+      'lechuga', 'espinaca', 'rúcula', 'zanahoria', 'remolacha',
+      'apio', 'acelga', 'brócoli', 'coliflor'
+    ],
+    'verano': [
+      'tomate', 'pimiento', 'berenjena', 'calabacín', 'pepino',
+      'sandía', 'melón', 'maíz dulce', 'okra', 'chaucha',
+      'lechuga de verano', 'acelga', 'zapallo'
+    ],
+    'otoño': [
+      'lechuga', 'espinaca', 'rúcula', 'radicheta', 'escarola',
+      'zanahoria', 'remolacha', 'nabo', 'rabanito', 'apio',
+      'brócoli', 'coliflor', 'repollo', 'acelga'
+    ],
+    'invierno': [
+      'lechuga de invierno', 'espinaca', 'acelga', 'apio', 'hinojo',
+      'cebolla de verdeo', 'puerro', 'ajo', 'habas', 'arvejas',
+      'brócoli', 'coliflor', 'repollo', 'col de bruselas'
+    ]
+  }
+  
+  const aromaticasTodoAño = [
+    'albahaca', 'perejil', 'cilantro', 'cebollín', 'orégano',
+    'romero', 'tomillo', 'salvia', 'menta', 'lavanda',
+    'estragón', 'mejorana', 'ciboulette'
+  ]
+  
+  return {
+    hortalizas: hortalizasPorEstacion[estacion] || hortalizasPorEstacion['primavera'],
+    aromaticas: aromaticasTodoAño
+  }
+}
+
+/**
+ * Obtiene cultivos filtrados por tamaño de espacio
+ */
+export function obtenerCultivosPorEspacio(tamaño: string): string[] {
+  const cultivosPorEspacio: Record<string, string[]> = {
+    'pequeño': [
+      'lechuga', 'espinaca', 'rábano', 'cebollín', 'perejil', 'albahaca',
+      'cilantro', 'menta', 'orégano', 'tomillo', 'microgreens'
+    ],
+    'mediano': [
+      'tomate cherry', 'pimiento', 'berenjena pequeña', 'calabacín',
+      'lechuga', 'espinaca', 'zanahoria', 'remolacha', 'hierbas variadas'
+    ],
+    'grande': [
+      'tomate', 'pimiento', 'berenjena', 'calabacín', 'pepino', 'melón',
+      'sandía', 'maíz', 'frijoles', 'habas', 'cultivos de raíz'
+    ],
+    'muy-grande': [
+      'árboles frutales', 'cultivos extensivos', 'maíz', 'calabaza grande',
+      'melones', 'sandías', 'cultivos de rotación', 'hierbas perennes'
+    ]
+  }
+  
+  return cultivosPorEspacio[tamaño] || []
+}
+
+/**
+ * Obtiene recomendaciones inteligentes basadas en múltiples factores
+ */
+export function obtenerRecomendacionesInteligentes(
+  paisCodigo: string,
+  clima?: string,
+  tamaño?: string
+): {
+  cultivos: string[]
+  cultivosEstacionales: string[]
+  cultivosClima: string[]
+  cultivosEspacio: string[]
+  consejos: string[]
+  estacionActual: string
+} {
+  const estacionActual = obtenerEstacionActual(paisCodigo)
+  const cultivosEstacionales = obtenerCultivosEstacionales(paisCodigo)
+  const cultivosClima = clima ? obtenerCultivosPorClima(clima) : []
+  const cultivosEspacio = tamaño ? obtenerCultivosPorEspacio(tamaño) : []
+  
+  // Combinar y filtrar cultivos que aparezcan en múltiples categorías (más recomendados)
+  const todosCultivos = [...cultivosEstacionales, ...cultivosClima, ...cultivosEspacio]
+  const contadorCultivos: Record<string, number> = {}
+  
+  todosCultivos.forEach(cultivo => {
+    contadorCultivos[cultivo] = (contadorCultivos[cultivo] || 0) + 1
+  })
+  
+  // Cultivos más recomendados (aparecen en múltiples categorías)
+  const cultivosRecomendados = Object.entries(contadorCultivos)
+    .sort(([,a], [,b]) => b - a)
+    .slice(0, 10)
+    .map(([cultivo]) => cultivo)
+  
+  const consejos = [
+    `🌍 Estación actual en ${paisesInfo[paisCodigo]?.nombre || paisCodigo}: ${estacionActual}`,
+    `🌱 Cultivos ideales para ${estacionActual}: ${cultivosEstacionales.slice(0, 3).join(', ')}`,
+  ]
+  
+  if (clima) {
+    consejos.push(`🌡️ Para clima ${clima}: ${cultivosClima.slice(0, 3).join(', ')}`)
+  }
+  
+  if (tamaño) {
+    consejos.push(`📏 Para espacio ${tamaño}: ${cultivosEspacio.slice(0, 3).join(', ')}`)
+  }
+  
+  consejos.push(
+    `🎯 Más recomendados para ti: ${cultivosRecomendados.slice(0, 3).join(', ')}`,
+    `🌎 Hemisferio ${obtenerHemisferio(paisCodigo)}: las estaciones ${obtenerHemisferio(paisCodigo) === 'sur' ? 'están invertidas' : 'son normales'}`
+  )
+  
+  return {
+    cultivos: cultivosRecomendados,
+    cultivosEstacionales,
+    cultivosClima,
+    cultivosEspacio,
+    consejos,
+    estacionActual
+  }
+}
+
+/**
+ * Obtiene recomendaciones usando datos climáticos reales de API
+ */
+export async function obtenerRecomendacionesConClima(
+  paisCodigo: string,
+  ubicacionGeografica: string,
+  tamaño?: string
+): Promise<{
+  cultivos: string[]
+  cultivosEstacionales: string[]
+  cultivosClima: string[]
+  cultivosEspacio: string[]
+  consejos: string[]
+  estacionActual: string
+  datosClima?: any
+}> {
+  try {
+    // Obtener datos climáticos reales
+    const response = await fetch(`/api/clima?ciudad=${encodeURIComponent(ubicacionGeografica)}&pais=${paisCodigo}`)
+    const climaData = await response.json()
+    
+    let tipoClimaDetectado = 'templado'
+    if (climaData.success && climaData.data) {
+      tipoClimaDetectado = climaData.data.tipoClima
+    }
+    
+    // Usar los datos climáticos reales en las recomendaciones
+    const recomendaciones = obtenerRecomendacionesInteligentes(paisCodigo, tipoClimaDetectado, tamaño)
+    
+    // Añadir información climática real a los consejos
+    const consejosConClima = [
+      ...recomendaciones.consejos,
+      climaData.success ? 
+        `🌡️ Clima actual en ${climaData.data.ciudad}: ${climaData.data.temperatura}°C, ${climaData.data.descripcion}` :
+        '🌡️ Usando datos climáticos estimados'
+    ]
+    
+    return {
+      ...recomendaciones,
+      consejos: consejosConClima,
+      datosClima: climaData.data
+    }
+    
+  } catch (error) {
+    console.error('Error obteniendo clima:', error)
+    // Fallback a recomendaciones básicas
+    return obtenerRecomendacionesInteligentes(paisCodigo, undefined, tamaño)
+  }
+}
+
+/**
+ * Genera parcelas automáticamente basado en el perfil del usuario
+ */
+export function generarParcelasAutomaticas(perfilUsuario: {
+  pais: string
+  tamaño: string
+  espacio: string
+  objetivos: string[]
+  tiempo: string
+  experiencia: string
+  plantasDeseadas: string[]
+}): Array<{
+  nombre: string
+  descripcion: string
+  cultivos: string[]
+  categoria: 'hortalizas' | 'aromaticas' | 'mixto'
+  dificultad: 'facil' | 'medio' | 'avanzado'
+  tiempoMantenimiento: 'bajo' | 'medio' | 'alto'
+}> {
+  const { hortalizas, aromaticas } = obtenerHortalizasPorTemporada(perfilUsuario.pais)
+  const estacion = obtenerEstacionActual(perfilUsuario.pais)
+  const parcelas: Array<any> = []
+  
+  // Filtrar cultivos según experiencia
+  const nivelDificultad = perfilUsuario.experiencia === 'principiante' ? 'facil' : 
+                         perfilUsuario.experiencia === 'basico' ? 'medio' : 'avanzado'
+  
+  // Cultivos fáciles para principiantes
+  const cultivosFaciles = ['lechuga', 'espinaca', 'rábano', 'perejil', 'cilantro', 'albahaca', 'cebollín']
+  const cultivosMedios = ['tomate cherry', 'pimiento', 'zanahoria', 'remolacha', 'acelga', 'orégano', 'menta']
+  const cultivosAvanzados = ['tomate', 'berenjena', 'melón', 'calabacín', 'brócoli', 'coliflor']
+  
+  // Filtrar hortalizas según experiencia
+  let hortalizasRecomendadas = hortalizas
+  if (nivelDificultad === 'facil') {
+    hortalizasRecomendadas = hortalizas.filter(h => cultivosFaciles.includes(h) || cultivosMedios.includes(h))
+  } else if (nivelDificultad === 'medio') {
+    hortalizasRecomendadas = hortalizas.filter(h => !cultivosAvanzados.includes(h) || Math.random() > 0.5)
+  }
+  
+  // Parcela de hortalizas
+  if (perfilUsuario.objetivos.includes('alimentos') || perfilUsuario.objetivos.includes('sostenible')) {
+    parcelas.push({
+      nombre: `Huerta de ${estacion}`,
+      descripcion: `Hortalizas ideales para plantar en ${estacion}`,
+      cultivos: hortalizasRecomendadas.slice(0, perfilUsuario.tamaño === 'pequeño' ? 4 : 
+                                              perfilUsuario.tamaño === 'mediano' ? 6 : 
+                                              perfilUsuario.tamaño === 'grande' ? 8 : 10),
+      categoria: 'hortalizas' as const,
+      dificultad: nivelDificultad as any,
+      tiempoMantenimiento: perfilUsuario.tiempo === 'poco' ? 'bajo' : 
+                          perfilUsuario.tiempo === 'moderado' ? 'medio' : 'alto'
+    })
+  }
+  
+  // Parcela de aromáticas
+  if (perfilUsuario.objetivos.includes('hierbas') || perfilUsuario.objetivos.includes('medicina') || perfilUsuario.objetivos.includes('hobby')) {
+    parcelas.push({
+      nombre: 'Jardín de Aromáticas',
+      descripcion: 'Hierbas aromáticas para cocina y medicina natural',
+      cultivos: aromaticas.slice(0, perfilUsuario.tamaño === 'pequeño' ? 5 : 
+                                   perfilUsuario.tamaño === 'mediano' ? 7 : 
+                                   perfilUsuario.tamaño === 'grande' ? 9 : 12),
+      categoria: 'aromaticas' as const,
+      dificultad: 'facil' as const, // Las aromáticas son generalmente fáciles
+      tiempoMantenimiento: 'bajo' as const
+    })
+  }
+  
+  // Parcela mixta si tiene plantas deseadas específicas
+  if (perfilUsuario.plantasDeseadas.length > 0) {
+    parcelas.push({
+      nombre: 'Cultivos Personalizados',
+      descripcion: 'Plantas que específicamente quieres cultivar',
+      cultivos: perfilUsuario.plantasDeseadas.slice(0, 8),
+      categoria: 'mixto' as const,
+      dificultad: nivelDificultad as any,
+      tiempoMantenimiento: perfilUsuario.tiempo === 'poco' ? 'medio' : 'alto'
+    })
+  }
+  
+  return parcelas
+}
+
+/**
+ * Obtiene recomendaciones específicas para la ubicación (función original mantenida por compatibilidad)
  */
 export function obtenerRecomendacionesUbicacion(paisCodigo: string): {
   cultivos: string[]
   consejos: string[]
   estacionActual: string
 } {
-  const estacionActual = obtenerEstacionActual(paisCodigo)
-  const cultivos = obtenerCultivosEstacionales(paisCodigo)
-  
-  const consejos = [
-    `En ${estacionActual}, es ideal plantar: ${cultivos.slice(0, 3).join(', ')}`,
-    `Tu hemisferio es ${obtenerHemisferio(paisCodigo)}, las estaciones están ${obtenerHemisferio(paisCodigo) === 'sur' ? 'invertidas' : 'normales'}`,
-    'Considera el clima local de tu ciudad para ajustar los tiempos de siembra'
-  ]
-  
+  const recomendaciones = obtenerRecomendacionesInteligentes(paisCodigo)
   return {
-    cultivos,
-    consejos,
-    estacionActual
+    cultivos: recomendaciones.cultivos,
+    consejos: recomendaciones.consejos,
+    estacionActual: recomendaciones.estacionActual
   }
 }

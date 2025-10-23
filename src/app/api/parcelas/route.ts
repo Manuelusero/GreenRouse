@@ -38,29 +38,87 @@ export async function POST(request: NextRequest) {
     await connectDB()
     const body = await request.json()
     
-    // Validar datos requeridos
-    const { usuarioEmail, nombre, area, cultivos, fechaSiembra, estado, riego } = body
+    // Estructura nueva para creación automática
+    const { 
+      nombre, 
+      descripcion, 
+      tipo, 
+      tamaño, 
+      ubicacion, 
+      clima, 
+      objetivos, 
+      plantas_deseadas, 
+      usuario_id,
+      configuracion_inicial,
+      // Estructura legacy
+      usuarioEmail, 
+      area, 
+      cultivos, 
+      fechaSiembra, 
+      estado, 
+      riego 
+    } = body
     
-    if (!usuarioEmail || !nombre || !area) {
-      return NextResponse.json({ error: 'Todos los campos requeridos' }, { status: 400 })
-    }
+    // Determinar si es creación automática o manual
+    const esCreacionAutomatica = !!configuracion_inicial?.generado_automaticamente
+    
+    let parcelaData: any = {}
+    
+    if (esCreacionAutomatica) {
+      // Creación automática desde el perfil
+      if (!usuario_id || !nombre || !plantas_deseadas) {
+        return NextResponse.json({ error: 'Datos de parcela automática incompletos' }, { status: 400 })
+      }
+      
+      // Buscar usuario por ID
+      const usuario = await Usuario.findById(usuario_id)
+      if (!usuario) {
+        return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 })
+      }
+      
+      parcelaData = {
+        usuarioEmail: usuario.email,
+        nombre,
+        descripcion: descripcion || `Parcela generada automáticamente: ${nombre}`,
+        area: tamaño === 'pequeño' ? 5 : tamaño === 'mediano' ? 15 : tamaño === 'grande' ? 30 : 50,
+        cultivos: plantas_deseadas || [],
+        tipo: tipo || 'mixta',
+        ubicacion: ubicacion || 'Sin especificar',
+        clima: clima || 'automatico',
+        objetivosString: Array.isArray(objetivos) ? objetivos.join(', ') : objetivos || '',
+        fechaSiembra: new Date(),
+        estado: 'Planificando',
+        riego: configuracion_inicial.tiempo_mantenimiento === 'bajo' ? 'Cada 2 días' : 
+               configuracion_inicial.tiempo_mantenimiento === 'medio' ? 'Diario' : 'Intensivo',
+        configuracionInicial: configuracion_inicial,
+        generadoAutomaticamente: true
+      }
+    } else {
+      // Creación manual (estructura legacy)
+      if (!usuarioEmail || !nombre || !area) {
+        return NextResponse.json({ error: 'Todos los campos requeridos' }, { status: 400 })
+      }
 
-    // Verificar que el usuario existe
-    const usuario = await Usuario.findOne({ email: usuarioEmail })
-    if (!usuario) {
-      return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 })
+      // Verificar que el usuario existe
+      const usuario = await Usuario.findOne({ email: usuarioEmail })
+      if (!usuario) {
+        return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 })
+      }
+
+      parcelaData = {
+        usuarioEmail,
+        nombre,
+        area: parseInt(area),
+        cultivos: cultivos || [],
+        fechaSiembra: fechaSiembra || new Date(),
+        estado: estado || 'Preparando',
+        riego: riego || 'Diario',
+        generadoAutomaticamente: false
+      }
     }
 
     // Crear nueva parcela
-    const nuevaParcela = await Parcela.create({
-      usuarioEmail,
-      nombre,
-      area: parseInt(area),
-      cultivos: cultivos || [],
-      fechaSiembra: fechaSiembra || new Date(),
-      estado: estado || 'Preparando',
-      riego: riego || 'Diario'
-    })
+    const nuevaParcela = await Parcela.create(parcelaData)
 
     return NextResponse.json(nuevaParcela, { status: 201 })
 

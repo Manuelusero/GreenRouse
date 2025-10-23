@@ -61,11 +61,11 @@ const ParcelaSchema = new mongoose.Schema({
     type: String,
     trim: true
   }],
-  // Nuevos campos para cultivos
-  objetivos: [{
+  // Campo de objetivos como string para compatibilidad
+  objetivosString: {
     type: String,
-    enum: ['alimentos', 'hierbas', 'flores', 'medicina', 'hobby', 'sostenible']
-  }],
+    trim: true
+  },
   plantas_deseadas: [String],
   // Fechas
   fechaSiembra: {
@@ -97,7 +97,16 @@ const ParcelaSchema = new mongoose.Schema({
     parcela_manual: { type: Boolean, default: false },
     cultivo_inicial: String,
     fecha_onboarding: Date
-  }
+  },
+  // Configuración automática
+  configuracionInicial: {
+    generado_automaticamente: { type: Boolean, default: false },
+    dificultad: { type: String, enum: ['facil', 'medio', 'avanzado'], default: 'medio' },
+    tiempo_mantenimiento: { type: String, enum: ['bajo', 'medio', 'alto'], default: 'medio' },
+    categoria: { type: String, enum: ['hortalizas', 'aromaticas', 'mixto'], default: 'mixto' },
+    fecha_generacion: Date
+  },
+  generadoAutomaticamente: { type: Boolean, default: false }
 }, {
   timestamps: true
 })

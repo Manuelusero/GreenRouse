@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import RecomendacionesInteligentes from './RecomendacionesInteligentes'
 
 interface PerfilData {
   nombre: string
@@ -11,7 +12,6 @@ interface PerfilData {
   ubicacion: string
   objetivos: string[]
   tiempo: string
-  clima: string
   tamaño: string
   ubicacionGeografica: string
   pais: string
@@ -25,6 +25,7 @@ export default function PerfilClient() {
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
+  const [hasUserEdited, setHasUserEdited] = useState(false)
   
   const [formData, setFormData] = useState<PerfilData>({
     nombre: '',
@@ -33,7 +34,6 @@ export default function PerfilClient() {
     ubicacion: '',
     objetivos: [],
     tiempo: '',
-    clima: '',
     tamaño: '',
     ubicacionGeografica: '',
     pais: '',
@@ -47,11 +47,97 @@ export default function PerfilClient() {
       return
     }
 
-    if (status === 'authenticated' && session?.user) {
-      // Cargar datos del perfil
+    if (status === 'authenticated' && session?.user && !hasUserEdited) {
+      // Cargar datos del perfil solo si el usuario no ha editado nada
       cargarPerfil()
     }
-  }, [session, status, router])
+  }, [session, status, router, hasUserEdited])
+
+  // Event listener para crear parcelas automáticamente
+  useEffect(() => {
+    const handleCrearParcelas = async (event: CustomEvent) => {
+      if (!session?.user) return
+      
+      try {
+        console.log('🚀 Iniciando creación automática de parcelas...')
+        
+        // Importar función de generación de parcelas
+        const { generarParcelasAutomaticas } = await import('@/utils/geografia')
+        
+        // Preparar datos del perfil
+        const perfilCompleto = {
+          pais: formData.pais || 'argentina',
+          tamaño: formData.tamaño || 'mediano',
+          espacio: formData.espacio || 'jardin',
+          objetivos: formData.objetivos || ['alimentos'],
+          tiempo: formData.tiempo || 'moderado',
+          experiencia: formData.experiencia || 'principiante',
+          plantasDeseadas: formData.plantasDeseadas || []
+        }
+        
+        console.log('📊 Perfil del usuario:', perfilCompleto)
+        
+        // Generar parcelas automáticamente
+        const parcelasGeneradas = generarParcelasAutomaticas(perfilCompleto)
+        
+        console.log('🌱 Parcelas generadas:', parcelasGeneradas)
+        
+        // Crear cada parcela en la base de datos
+        for (const parcela of parcelasGeneradas) {
+          try {
+            const response = await fetch('/api/parcelas', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                nombre: parcela.nombre,
+                descripcion: parcela.descripcion,
+                tipo: parcela.categoria,
+                tamaño: formData.tamaño,
+                ubicacion: formData.ubicacion,
+                clima: 'automatico',
+                objetivos: formData.objetivos,
+                plantas_deseadas: parcela.cultivos,
+                usuario_id: (session.user as any).id,
+                configuracion_inicial: {
+                  generado_automaticamente: true,
+                  dificultad: parcela.dificultad,
+                  tiempo_mantenimiento: parcela.tiempoMantenimiento,
+                  categoria: parcela.categoria,
+                  fecha_generacion: new Date()
+                }
+              })
+            })
+            
+            if (response.ok) {
+              console.log(`✅ Parcela "${parcela.nombre}" creada exitosamente`)
+            } else {
+              console.error(`❌ Error creando parcela "${parcela.nombre}"`)
+            }
+          } catch (error) {
+            console.error(`❌ Error creando parcela "${parcela.nombre}":`, error)
+          }
+        }
+        
+        // Mostrar mensaje de éxito
+        setShowSuccess(true)
+        setTimeout(() => setShowSuccess(false), 5000)
+        
+        // Opcional: redirigir a la página de parcelas
+        setTimeout(() => {
+          router.push('/parcelas')
+        }, 2000)
+        
+      } catch (error) {
+        console.error('❌ Error en creación automática de parcelas:', error)
+      }
+    }
+
+    window.addEventListener('crearParcelasAutomaticas', handleCrearParcelas as any)
+    
+    return () => {
+      window.removeEventListener('crearParcelasAutomaticas', handleCrearParcelas as any)
+    }
+  }, [formData, session, router])
 
   const cargarPerfil = async () => {
     try {
@@ -111,6 +197,8 @@ export default function PerfilClient() {
   }
 
   const handleInputChange = (field: keyof PerfilData, value: string) => {
+    console.log(`🔄 Cambiando ${field}:`, value)
+    setHasUserEdited(true) // Marcar que el usuario ha editado algo
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -118,6 +206,7 @@ export default function PerfilClient() {
   }
 
   const handleArrayChange = (field: keyof PerfilData, value: string) => {
+    setHasUserEdited(true) // Marcar que el usuario ha editado algo
     setFormData(prev => ({
       ...prev,
       [field]: (prev[field] as string[]).includes(value)
@@ -131,6 +220,7 @@ export default function PerfilClient() {
     
     if (!session?.user) return
     
+    console.log('🚀 Enviando datos del perfil:', formData)
     setIsSaving(true)
     
     try {
@@ -145,9 +235,15 @@ export default function PerfilClient() {
         })
       })
 
+      const result = await response.json()
+      console.log('📝 Respuesta del servidor:', result)
+
       if (response.ok) {
         setShowSuccess(true)
+        setHasUserEdited(false) // Resetear flag de edición después de guardar exitosamente
         setTimeout(() => setShowSuccess(false), 3000)
+      } else {
+        console.error('❌ Error en la respuesta:', result)
       }
     } catch (error) {
       console.error('Error guardando perfil:', error)
@@ -219,10 +315,11 @@ export default function PerfilClient() {
               <label className="block text-sm font-medium text-gray-700 mb-2">¿Cómo te gusta que te llamen?</label>
               <input
                 type="text"
-                value={formData.nombre}
+                value={formData.nombre || ''}
                 onChange={(e) => handleInputChange('nombre', e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-leaf-green focus:border-transparent text-gray-900 bg-white"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-leaf-green focus:border-transparent text-gray-900 bg-white placeholder:text-gray-400"
                 placeholder="Tu nombre"
+                autoComplete="name"
               />
             </div>
           </div>
@@ -392,22 +489,6 @@ export default function PerfilClient() {
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Clima de tu región</label>
-                <select
-                  value={formData.clima}
-                  onChange={(e) => handleInputChange('clima', e.target.value)}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-leaf-green focus:border-transparent text-gray-900 bg-white"
-                >
-                  <option value="">Selecciona tu clima</option>
-                  <option value="tropical">Tropical</option>
-                  <option value="subtropical">Subtropical</option>
-                  <option value="templado">Templado</option>
-                  <option value="frio">Frío</option>
-                  <option value="desertico">Desértico</option>
-                </select>
-              </div>
-              
-              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Tamaño estimado de tu huerta</label>
                 <select
                   value={formData.tamaño}
@@ -505,16 +586,26 @@ export default function PerfilClient() {
               <label className="block text-sm font-medium text-gray-700 mb-2">Plantas que te gustaría cultivar</label>
               <textarea
                 value={formData.plantasDeseadas.join(', ')}
-                onChange={(e) => setFormData(prev => ({
-                  ...prev,
-                  plantasDeseadas: e.target.value.split(', ').filter(p => p.trim())
-                }))}
+                onChange={(e) => {
+                  setHasUserEdited(true)
+                  setFormData(prev => ({
+                    ...prev,
+                    plantasDeseadas: e.target.value.split(', ').filter(p => p.trim())
+                  }))
+                }}
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-leaf-green focus:border-transparent text-gray-900 bg-white"
                 placeholder="Ej: tomates, lechugas, hierbas aromáticas, flores..."
                 rows={3}
               />
               <p className="text-sm text-gray-500 mt-1">Separa cada planta con una coma</p>
             </div>
+
+            {/* Recomendaciones Inteligentes */}
+            <RecomendacionesInteligentes
+              pais={formData.pais}
+              tamaño={formData.tamaño}
+              ubicacionGeografica={formData.ubicacionGeografica}
+            />
           </div>
 
           {/* Botones de acción */}

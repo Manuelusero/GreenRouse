@@ -1,21 +1,7 @@
 {
   "/api/onboarding/route": "app/api/onboarding/route.js",
-  "/api/usuarios/route": "app/api/usuarios/route.js",
-  "/_not-found/page": "app/_not-found/page.js",
   "/api/parcelas/route": "app/api/parcelas/route.js",
-  "/api/auth/[...nextauth]/route": "app/api/auth/[...nextauth]/route.js",
-  "/auth/verify-request/page": "app/auth/verify-request/page.js",
-  "/blog/page": "app/blog/page.js",
   "/auth/login/page": "app/auth/login/page.js",
-  "/calculadora/page": "app/calculadora/page.js",
-  "/calendario/page": "app/calendario/page.js",
-  "/comenzar/page": "app/comenzar/page.js",
-  "/cursos/page": "app/cursos/page.js",
   "/perfil/page": "app/perfil/page.js",
-  "/parcelas/[id]/page": "app/parcelas/[id]/page.js",
-  "/page": "app/page.js",
-  "/parcelas/page": "app/parcelas/page.js",
-  "/privacidad/page": "app/privacidad/page.js",
-  "/proveedores/page": "app/proveedores/page.js",
-  "/terminos/page": "app/terminos/page.js"
+  "/parcelas/page": "app/parcelas/page.js"
 }

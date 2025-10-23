@@ -79,9 +79,14 @@ export async function POST(request: NextRequest) {
     
     if (onboarding) {
       // Actualizar onboarding existente
+      console.log('📊 Datos anteriores:', JSON.stringify(onboarding.datos, null, 2))
+      console.log('📊 Datos nuevos a fusionar:', JSON.stringify(datos, null, 2))
+      
       onboarding.paso_actual = paso_actual || onboarding.paso_actual
       onboarding.datos = { ...onboarding.datos, ...datos }
       onboarding.completado = completado !== undefined ? completado : onboarding.completado
+      
+      console.log('📊 Datos finales fusionados:', JSON.stringify(onboarding.datos, null, 2))
       
       if (completado && !onboarding.fecha_completado) {
         onboarding.fecha_completado = new Date()
