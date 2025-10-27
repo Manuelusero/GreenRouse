@@ -139,6 +139,98 @@ export default function PerfilClient() {
     }
   }, [formData, session, router])
 
+  // Event listener para generar opciones de parcelas
+  useEffect(() => {
+    const handleGenerarOpciones = async (event: CustomEvent) => {
+      if (!session?.user) return
+      
+      try {
+        console.log('🌱 Generando parcelas personalizadas...')
+        const { hortalizas, aromaticas } = event.detail
+        
+        console.log('📊 Plantas seleccionadas:', { hortalizas, aromaticas })
+        console.log('👤 Usuario:', session.user.email)
+        
+        // Crear parcelas simples usando el formato legacy que funciona
+        const parcelasACrear = []
+        
+        if (hortalizas.length > 0) {
+          parcelasACrear.push({
+              usuarioEmail: session.user.email,
+              nombre: 'Mi Huerta de Hortalizas',
+              area: 15,
+              cultivos: hortalizas,
+              fechaSiembra: new Date(),
+              estado: 'planificando', // Usar minúscula
+              riego: 'Diario'
+            })
+        }
+        
+        if (aromaticas.length > 0) {
+          parcelasACrear.push({
+            usuarioEmail: session.user.email,
+            nombre: 'Mi Jardín de Aromáticas',
+            area: 10,
+            cultivos: aromaticas,
+            fechaSiembra: new Date(),
+            estado: 'planificando', // Corregido a minúscula
+            riego: 'Cada 2 días'
+          })
+        }
+        
+        console.log('🚀 Creando parcelas:', parcelasACrear)
+        
+        const parcelasCreadas = []
+        
+        for (const parcelaData of parcelasACrear) {
+          try {
+            console.log(`📤 Creando: ${parcelaData.nombre}`)
+            
+            const response = await fetch('/api/parcelas', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(parcelaData)
+            })
+            
+            if (response.ok) {
+              const result = await response.json()
+              console.log(`✅ ${parcelaData.nombre} creada exitosamente`)
+              parcelasCreadas.push(result)
+            } else {
+              const error = await response.text()
+              console.error(`❌ Error creando ${parcelaData.nombre}:`, error)
+            }
+          } catch (error) {
+            console.error(`❌ Error en ${parcelaData.nombre}:`, error)
+          }
+        }
+        
+        if (parcelasCreadas.length > 0) {
+          setShowSuccess(true)
+          setTimeout(() => setShowSuccess(false), 3000)
+          
+          alert(`¡Perfecto! Se crearon ${parcelasCreadas.length} parcelas con tus plantas seleccionadas.`)
+          
+          setTimeout(() => {
+            router.push('/parcelas')
+          }, 1500)
+        } else {
+          alert('Hubo un problema creando las parcelas. Revisa la consola para más detalles.')
+        }
+        
+      } catch (error) {
+        console.error('❌ Error:', error)
+        alert('Error creando parcelas. Intenta de nuevo.')
+      }
+    }
+
+    window.addEventListener('generarOpcionesParcelas', handleGenerarOpciones as any)
+    
+    return () => {
+      window.removeEventListener('generarOpcionesParcelas', handleGenerarOpciones as any)
+    }
+  }, [session, router])
+
   const cargarPerfil = async () => {
     try {
       console.log('🔍 Cargando perfil para usuario:', (session?.user as any)?.id)

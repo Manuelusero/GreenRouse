@@ -311,6 +311,137 @@ export async function obtenerRecomendacionesConClima(
 }
 
 /**
+ * Genera 2 opciones diferentes de parcelas basadas en la selección del usuario
+ */
+export function generarOpcionesParcelas(perfilUsuario: {
+  pais: string
+  tamaño: string
+  espacio: string
+  objetivos: string[]
+  tiempo: string
+  experiencia: string
+  plantasSeleccionadas: {
+    hortalizas: string[]
+    aromaticas: string[]
+  }
+}): Array<{
+  nombre: string
+  descripcion: string
+  parcelas: Array<{
+    nombre: string
+    cultivos: string[]
+    area: number
+    ubicacion: string
+  }>
+}> {
+  const { hortalizas, aromaticas } = perfilUsuario.plantasSeleccionadas
+  const totalPlantas = hortalizas.length + aromaticas.length
+  
+  // Determinar tamaños de área según el perfil
+  const areaTotal = perfilUsuario.tamaño === 'pequeño' ? 10 : 
+                   perfilUsuario.tamaño === 'mediano' ? 25 : 
+                   perfilUsuario.tamaño === 'grande' ? 50 : 75
+
+  const opciones = []
+
+  // OPCIÓN 1: Separadas por tipo (hortalizas vs aromáticas)
+  if (hortalizas.length > 0 && aromaticas.length > 0) {
+    const areaPorTipo = Math.floor(areaTotal / 2)
+    opciones.push({
+      nombre: "Opción A: Parcelas Separadas",
+      descripcion: "Hortalizas y aromáticas en parcelas independientes para mejor organización",
+      parcelas: [
+        {
+          nombre: "Huerta de Hortalizas",
+          cultivos: hortalizas,
+          area: areaPorTipo,
+          ubicacion: "zona-sol"
+        },
+        {
+          nombre: "Jardín de Aromáticas", 
+          cultivos: aromaticas,
+          area: areaPorTipo,
+          ubicacion: "zona-semisombra"
+        }
+      ]
+    })
+  }
+
+  // OPCIÓN 2: Mixta por compatibilidad
+  if (totalPlantas > 0) {
+    // Dividir en parcelas más pequeñas mezclando tipos
+    const plantasPorParcela = Math.max(3, Math.floor(totalPlantas / 2))
+    const todasLasPlantas = [...hortalizas, ...aromaticas]
+    
+    const parcela1 = todasLasPlantas.slice(0, plantasPorParcela)
+    const parcela2 = todasLasPlantas.slice(plantasPorParcela)
+    
+    const areaPorParcela = Math.floor(areaTotal / (parcela2.length > 0 ? 2 : 1))
+    
+    const parcelasMixtas = [
+      {
+        nombre: "Parcela Mixta Principal",
+        cultivos: parcela1,
+        area: areaPorParcela,
+        ubicacion: "zona-sol"
+      }
+    ]
+    
+    if (parcela2.length > 0) {
+      parcelasMixtas.push({
+        nombre: "Parcela Mixta Secundaria",
+        cultivos: parcela2,
+        area: areaPorParcela,
+        ubicacion: "zona-semisombra"
+      })
+    }
+    
+    opciones.push({
+      nombre: "Opción B: Parcelas Mixtas",
+      descripcion: "Hortalizas y aromáticas mezcladas para maximizar el espacio y crear ecosistemas",
+      parcelas: parcelasMixtas
+    })
+  }
+
+  // OPCIÓN 3: Por facilidad de cuidado (si hay muchas plantas)
+  if (totalPlantas > 6) {
+    const plantasFaciles = [...hortalizas.filter(h => 
+      ['lechuga', 'espinaca', 'rábano', 'perejil', 'cilantro'].includes(h)
+    ), ...aromaticas.filter(a => 
+      ['albahaca', 'perejil', 'cilantro', 'menta'].includes(a)
+    )]
+    
+    const plantasAvanzadas = [
+      ...hortalizas.filter(h => !['lechuga', 'espinaca', 'rábano', 'perejil', 'cilantro'].includes(h)),
+      ...aromaticas.filter(a => !['albahaca', 'perejil', 'cilantro', 'menta'].includes(a))
+    ]
+    
+    if (plantasFaciles.length > 0 && plantasAvanzadas.length > 0) {
+      opciones.push({
+        nombre: "Opción C: Por Dificultad",
+        descripcion: "Separadas por facilidad de cuidado - ideal para ir aprendiendo gradualmente",
+        parcelas: [
+          {
+            nombre: "Parcela para Principiantes",
+            cultivos: plantasFaciles,
+            area: Math.floor(areaTotal * 0.6),
+            ubicacion: "zona-facil-acceso"
+          },
+          {
+            nombre: "Parcela Avanzada",
+            cultivos: plantasAvanzadas,
+            area: Math.floor(areaTotal * 0.4),
+            ubicacion: "zona-experimental"
+          }
+        ]
+      })
+    }
+  }
+
+  return opciones.slice(0, 2) // Devolver máximo 2 opciones
+}
+
+/**
  * Genera parcelas automáticamente basado en el perfil del usuario
  */
 export function generarParcelasAutomaticas(perfilUsuario: {

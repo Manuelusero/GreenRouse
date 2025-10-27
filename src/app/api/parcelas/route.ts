@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import mongoose from 'mongoose'
 import connectDB from '@/lib/mongodb'
 import Parcela from '@/models/Parcela'
 import Usuario from '@/models/Usuario'
@@ -38,6 +39,8 @@ export async function POST(request: NextRequest) {
     await connectDB()
     const body = await request.json()
     
+    console.log('📝 Datos recibidos en API parcelas:', JSON.stringify(body, null, 2))
+    
     // Estructura nueva para creación automática
     const { 
       nombre, 
@@ -71,13 +74,18 @@ export async function POST(request: NextRequest) {
       }
       
       // Buscar usuario por ID
-      const usuario = await Usuario.findById(usuario_id)
+      const usuarioObjectId = new mongoose.Types.ObjectId(usuario_id)
+      const usuario = await Usuario.findById(usuarioObjectId)
       if (!usuario) {
+        console.error('❌ Usuario no encontrado con ID:', usuario_id)
         return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 })
       }
       
+      console.log('👤 Usuario encontrado:', usuario.email)
+
       parcelaData = {
         usuarioEmail: usuario.email,
+        usuario_id: usuarioObjectId, // Usar ObjectId convertido
         nombre,
         descripcion: descripcion || `Parcela generada automáticamente: ${nombre}`,
         area: tamaño === 'pequeño' ? 5 : tamaño === 'mediano' ? 15 : tamaño === 'grande' ? 30 : 50,
@@ -100,9 +108,24 @@ export async function POST(request: NextRequest) {
       }
 
       // Verificar que el usuario existe
+      console.log('🔍 Buscando usuario con email:', usuarioEmail)
       const usuario = await Usuario.findOne({ email: usuarioEmail })
+      console.log('👤 Usuario encontrado:', usuario ? 'SÍ' : 'NO')
+      
       if (!usuario) {
-        return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 })
+        // Intentar crear el usuario si no existe
+        console.log('⚠️ Usuario no existe, creando nuevo usuario...')
+        try {
+          const nuevoUsuario = await Usuario.create({
+            email: usuarioEmail,
+            nombre: usuarioEmail.split('@')[0],
+            provider: 'google'
+          })
+          console.log('✅ Usuario creado:', nuevoUsuario.email)
+        } catch (createError) {
+          console.error('❌ Error creando usuario:', createError)
+          return NextResponse.json({ error: 'Error creando usuario' }, { status: 500 })
+        }
       }
 
       parcelaData = {
@@ -117,9 +140,12 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    console.log('💾 Datos de parcela a crear:', JSON.stringify(parcelaData, null, 2))
+
     // Crear nueva parcela
     const nuevaParcela = await Parcela.create(parcelaData)
 
+    console.log('✅ Parcela creada exitosamente:', nuevaParcela._id)
     return NextResponse.json(nuevaParcela, { status: 201 })
 
   } catch (error: any) {
