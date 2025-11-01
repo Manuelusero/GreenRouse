@@ -1,1 +1,1 @@
-self.__REACT_LOADABLE_MANIFEST="{\"components/PerfilClient.tsx -> @/utils/geografia\":{\"id\":\"components/PerfilClient.tsx -> @/utils/geografia\",\"files\":[\"static/chunks/_app-pages-browser_src_utils_geografia_ts.js\"]},\"components/RecomendacionesInteligentes.tsx -> @/utils/geografia\":{\"id\":\"components/RecomendacionesInteligentes.tsx -> @/utils/geografia\",\"files\":[\"static/chunks/_app-pages-browser_src_utils_geografia_ts.js\"]}}"
+self.__REACT_LOADABLE_MANIFEST="{}"

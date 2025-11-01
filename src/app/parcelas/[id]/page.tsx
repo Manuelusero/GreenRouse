@@ -1,7 +1,7 @@
 'use client'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
-import ParcelaVisual from '@/components/ParcelaVisual'
+import ParcelaVisualGrid from '@/components/ParcelaVisualGrid'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
@@ -175,7 +175,7 @@ export default function ParcelaDetalle({ params }: { params: Promise<{ id: strin
           <div className="p-6">
             {/* Vista Visual */}
             {seccionActiva === 'visual' && mounted && (
-              <ParcelaVisual
+              <ParcelaVisualGrid
                 nombre={parcela.nombre}
                 cultivos={parcela.cultivos || []}
                 area={parcela.area || 10}

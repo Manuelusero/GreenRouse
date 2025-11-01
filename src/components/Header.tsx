@@ -2,12 +2,14 @@
 import Link from 'next/link'
 import { useState, useEffect, useRef } from 'react'
 import { useSession, signOut } from 'next-auth/react'
+import { useHydration } from '@/hooks/useHydration'
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
   const { data: session, status } = useSession()
   const userMenuRef = useRef<HTMLDivElement>(null)
+  const isHydrated = useHydration()
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -54,8 +56,15 @@ export default function Header() {
           </nav>
 
           <div className="hidden md:flex items-center space-x-4">
-            {status === 'loading' ? (
-              <div className="w-8 h-8 animate-spin rounded-full border-2 border-leaf-green border-t-transparent"></div>
+            {!isHydrated ? (
+              <div className="flex items-center space-x-2">
+                <Link 
+                  href="/auth/login"
+                  className="bg-sage-green text-white px-4 py-2 rounded-md hover:bg-leaf-green transition-colors"
+                >
+                  Iniciar Sesión
+                </Link>
+              </div>
             ) : session ? (
               <div className="relative flex items-center space-x-3">
                 <div className="flex items-center space-x-2">
@@ -108,6 +117,8 @@ export default function Header() {
                   )}
                 </div>
               </div>
+            ) : status === 'loading' ? (
+              <div className="w-8 h-8 animate-spin rounded-full border-2 border-leaf-green border-t-transparent"></div>
             ) : (
               <div className="flex items-center space-x-2">
                 <Link 
@@ -155,7 +166,16 @@ export default function Header() {
               
               {/* Mobile auth section */}
               <div className="border-t pt-3 mt-3">
-                {session ? (
+                {!isHydrated ? (
+                  <div className="px-3 py-2">
+                    <Link 
+                      href="/auth/login"
+                      className="block bg-sage-green text-white px-4 py-2 rounded-md text-center hover:bg-leaf-green transition-colors"
+                    >
+                      Iniciar Sesión
+                    </Link>
+                  </div>
+                ) : session ? (
                   <div className="px-3 py-2">
                     <div className="flex items-center space-x-2 mb-3">
                       <div className="w-6 h-6 bg-leaf-green rounded-full flex items-center justify-center">

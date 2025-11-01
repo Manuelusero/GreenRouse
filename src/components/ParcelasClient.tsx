@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Modal from './Modal'
+import { useHydration } from '@/hooks/useHydration'
 
 interface Parcela {
   _id?: string
@@ -29,6 +30,7 @@ export default function ParcelasClient({ parcelas: initialParcelas, userEmail }:
   
   const searchParams = useSearchParams()
   const fromOnboarding = searchParams.get('from') === 'onboarding'
+  const isHydrated = useHydration()
 
   useEffect(() => {
     if (fromOnboarding) {
@@ -205,7 +207,18 @@ export default function ParcelasClient({ parcelas: initialParcelas, userEmail }:
                 <div className="space-y-2 text-sm text-gray-600">
                   <div className="flex justify-between">
                     <span>Fecha de siembra:</span>
-                    <span className="font-medium">{new Date(parcela.fechaSiembra).toLocaleDateString()}</span>
+                    <span className="font-medium">
+                      {isHydrated && parcela.fechaSiembra 
+                        ? new Date(parcela.fechaSiembra).toLocaleDateString('es-ES', {
+                            year: 'numeric',
+                            month: 'long', 
+                            day: 'numeric'
+                          })
+                        : parcela.fechaSiembra 
+                          ? new Date(parcela.fechaSiembra).getFullYear().toString()
+                          : 'No definida'
+                      }
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span>Riego:</span>

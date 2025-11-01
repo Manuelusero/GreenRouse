@@ -45,10 +45,25 @@ const PLANTAS_INFO: Record<string, Planta> = {
 export default function ParcelaVisual({ nombre, cultivos, area, onEdit }: ParcelaVisualProps) {
   const [editMode, setEditMode] = useState(false)
   const [tempCultivos, setTempCultivos] = useState(cultivos || [])
-  const [draggedPlant, setDraggedPlant] = useState<{ plant: string; index: number } | null>(null)
-  const [plantPositions, setPlantPositions] = useState<Record<string, { x: number; y: number }>>({})
-  const [selectedPosition, setSelectedPosition] = useState<{ x: number; y: number } | null>(null)
+  const [selectedPlantToAdd, setSelectedPlantToAdd] = useState<string | null>(null)
+  const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null)
+  const [draggedPlantIndex, setDraggedPlantIndex] = useState<number | null>(null)
+  const [draggedPlant, setDraggedPlant] = useState<{ plant: string; index: number; numero: number } | null>(null)
   const [selectedNewPlant, setSelectedNewPlant] = useState<string | null>(null)
+  const [plantPositions, setPlantPositions] = useState<Record<string, { x: number; y: number }>>({})
+  
+  // Estructura para almacenar plantas con posiciones en grid
+  const [plantasEnGrid, setPlantasEnGrid] = useState<Array<{
+    tipo: string
+    fila: number
+    columna: number
+  }>>([])
+  
+  // Función para mostrar feedback temporal
+  const mostrarFeedback = (mensaje: string) => {
+    setFeedbackMessage(mensaje)
+    setTimeout(() => setFeedbackMessage(null), 2000)
+  }
   
   // Validación de datos de entrada
   const cultivosValidos = (cultivos || []).filter(cultivo => 
@@ -233,13 +248,24 @@ export default function ParcelaVisual({ nombre, cultivos, area, onEdit }: Parcel
   const posiciones = generarPosiciones(editMode ? tempCultivos : cultivosValidos)
   
   const agregarPlanta = (nuevaPlanta: string) => {
-    if (!tempCultivos.includes(nuevaPlanta)) {
-      setTempCultivos([...tempCultivos, nuevaPlanta])
-    }
+    // Permitir agregar múltiples instancias de la misma planta
+    setTempCultivos([...tempCultivos, nuevaPlanta])
+    // Mostrar mensaje temporal
+    const nombrePlanta = PLANTAS_INFO[nuevaPlanta]?.nombre || nuevaPlanta
+    mostrarFeedback(`✅ ${nombrePlanta} añadida`)
   }
   
   const quitarPlanta = (planta: string, positionKey?: string) => {
-    setTempCultivos(tempCultivos.filter(p => p !== planta))
+    // Quitar UNA instancia de la planta
+    const index = tempCultivos.findIndex(p => p === planta)
+    if (index > -1) {
+      const nuevosCultivos = [...tempCultivos]
+      nuevosCultivos.splice(index, 1)
+      setTempCultivos(nuevosCultivos)
+      const nombrePlanta = PLANTAS_INFO[planta]?.nombre || planta
+      mostrarFeedback(`❌ ${nombrePlanta} eliminada`)
+    }
+    
     // Eliminar posición personalizada si existe
     if (positionKey && plantPositions[positionKey]) {
       const newPositions = { ...plantPositions }
@@ -279,7 +305,10 @@ export default function ParcelaVisual({ nombre, cultivos, area, onEdit }: Parcel
   const handlePlantDrag = (e: React.MouseEvent, pos: any, index: number) => {
     if (!editMode) return
     e.preventDefault()
-    setDraggedPlant({ plant: pos.planta, index })
+    e.stopPropagation()
+    
+    const plantData = { plant: pos.planta, index, numero: pos.numero }
+    setDraggedPlant(plantData)
     
     // Add mouse move and mouse up event listeners
     const handleMouseMove = (e: MouseEvent) => {
@@ -293,7 +322,7 @@ export default function ParcelaVisual({ nombre, cultivos, area, onEdit }: Parcel
       
       // If clicking on the parcela, place the plant
       const parcelaElement = document.querySelector('[data-parcela-container]') as HTMLElement
-      if (parcelaElement && draggedPlant) {
+      if (parcelaElement) {
         const rect = parcelaElement.getBoundingClientRect()
         const x = ((e.clientX - rect.left) / rect.width) * anchoCm
         const y = ((e.clientY - rect.top) / rect.height) * altoCm
@@ -301,11 +330,12 @@ export default function ParcelaVisual({ nombre, cultivos, area, onEdit }: Parcel
         // Check if within bounds
         if (x >= 0 && x <= anchoCm && y >= 0 && y <= altoCm) {
           // Move the plant to new position
-          const plantKey = `${draggedPlant.plant}-${pos.numero}-${index}`
+          const plantKey = `${plantData.plant}-${plantData.numero}-${plantData.index}`
           setPlantPositions(prev => ({
             ...prev,
             [plantKey]: { x, y }
           }))
+          console.log(`🔄 ${PLANTAS_INFO[plantData.plant]?.nombre || plantData.plant} reposicionada`)
         }
       }
       
@@ -329,6 +359,13 @@ export default function ParcelaVisual({ nombre, cultivos, area, onEdit }: Parcel
 
   return (
     <div className="bg-white rounded-lg shadow-lg p-6">
+      {/* Feedback Message */}
+      {feedbackMessage && (
+        <div className="fixed top-4 right-4 z-50 bg-green-500 text-white px-6 py-3 rounded-lg shadow-xl animate-bounce">
+          {feedbackMessage}
+        </div>
+      )}
+      
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <div>
@@ -505,20 +542,30 @@ export default function ParcelaVisual({ nombre, cultivos, area, onEdit }: Parcel
                 <button
                   key={planta}
                   onClick={() => agregarPlanta(planta)}
-                  className={`p-2 rounded-lg border-2 border-gray-300 hover:border-green-500 hover:shadow-md transition-all ${info.color}`}
-                  title={`${info.nombre} - Espaciado: ${info.espaciado}cm`}
+                  className={`p-2 rounded-lg border-2 transition-all transform hover:scale-105 active:scale-95 ${info.color} border-gray-300 hover:border-green-500 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-green-400`}
+                  title={`Añadir ${info.nombre} - Espaciado: ${info.espaciado}cm`}
                 >
                   <div className="text-center">
-                    <div className="text-lg mb-1">{info.emoji}</div>
-                    <div className="text-xs font-medium">{info.nombre}</div>
+                    <div className="text-2xl mb-1">{info.emoji}</div>
+                    <div className="text-xs font-medium text-gray-700">{info.nombre}</div>
                   </div>
                 </button>
               )
             })}
           </div>
           
-          <div className="mt-4 text-sm text-gray-600 bg-blue-50 p-3 rounded-lg border border-blue-200">
-            💡 <strong>Consejo:</strong> Haz clic en las plantas del jardín para quitarlas. Las plantas se organizan automáticamente por tamaño: grandes al fondo, pequeñas al frente.
+          <div className="mt-4 text-sm text-gray-700 bg-blue-50 p-3 rounded-lg border border-blue-200">
+            <div className="flex items-start gap-2">
+              <span className="text-lg">💡</span>
+              <div>
+                <p className="font-semibold mb-1">Cómo usar el editor:</p>
+                <ul className="list-disc list-inside space-y-1 text-xs">
+                  <li><strong>Añadir:</strong> Click en los botones de arriba para agregar plantas</li>
+                  <li><strong>Eliminar:</strong> Click en cualquier planta del jardín (verás una ×)</li>
+                  <li><strong>Mover:</strong> Mantén presionado sobre una planta y arrastra a nueva posición</li>
+                </ul>
+              </div>
+            </div>
           </div>
         </div>
       )}
